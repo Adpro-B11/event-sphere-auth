@@ -180,7 +180,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
                 <configuration>
-                    <mainClass>id.ac.ui.cs.advprog.eventsphere.EventSphereApplication</mainClass>
+                    <mainClass>id.ac.ui.cs.advprog.eventsphere.auth.AuthApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
