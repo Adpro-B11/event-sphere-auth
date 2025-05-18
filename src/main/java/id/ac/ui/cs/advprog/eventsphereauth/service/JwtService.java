@@ -1,9 +1,10 @@
 package id.ac.ui.cs.advprog.eventsphereauth.service;
 
-import id.ac.ui.cs.advprog.eventsphereauth.model.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public interface JwtService {
-    String generateToken(User user);
     String extractUsername(String token);
-    boolean isTokenValid(String token, User user);
+    <T> T extractClaim(String token, java.util.function.Function<io.jsonwebtoken.Claims, T> claimsResolver);
+    boolean isTokenValid(String token, UserDetails userDetails);
+    String generateToken(UserDetails userDetails);
 }

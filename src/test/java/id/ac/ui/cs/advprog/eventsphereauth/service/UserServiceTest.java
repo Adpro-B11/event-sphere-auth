@@ -42,7 +42,7 @@ public class UserServiceTest {
     void testFindUsernameById() {
         // Arrange
         String userId = UUID.randomUUID().toString();
-        User mockUser = new User(userId, "john_doe", "john@example.com", "Password123", "08123456789");
+        User mockUser = new User(userId, "john_doe", "john@example.com", "Password123", "08123456789", 100);
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
 
         // Act
