@@ -5,7 +5,8 @@ on:
     branches:
       - main
       - staging
-
+env:
+  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -60,6 +61,7 @@ jobs:
     - name: Connect SSH and Restart Services
       run: |
         ssh -o StrictHostKeyChecking=no -i $HOME/key.pem ubuntu@ec2-52-7-42-79.compute-1.amazonaws.com '
+          export JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }} &&
           sudo systemctl restart event-sphere-auth &&
           sudo systemctl restart nginx
         '
