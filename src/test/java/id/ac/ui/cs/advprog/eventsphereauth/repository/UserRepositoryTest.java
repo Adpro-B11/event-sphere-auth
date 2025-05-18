@@ -9,41 +9,104 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserRepositoryTest {
+class UserRepositoryTest {
 
     private UserRepository userRepository;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
         userRepository = new InMemoryUserRepository();
+        
+        // Create a test user
+        String userId = UUID.randomUUID().toString();
+        testUser = new User();
+        testUser.setId(userId);
+        testUser.setUsername("testuser");
+        testUser.setEmail("test@example.com");
+        testUser.setPassword("password123");
+        testUser.setPhone("1234567890");
+        testUser.setBalance(100.0);
+        
+        userRepository.save(testUser);
     }
 
     @Test
-    void testSaveAndFindUser() {
-        // Arrange
-        String userId = UUID.randomUUID().toString();
-        User user = new User(userId, "john_doe", "john@example.com", "Password123", "08123456789");
-
+    void testFindById() {
         // Act
-        userRepository.save(user);
-        Optional<User> foundUser = userRepository.findById(userId);
-
+        Optional<User> foundUser = userRepository.findById(testUser.getId());
+        
         // Assert
         assertTrue(foundUser.isPresent());
-        assertEquals("john_doe", foundUser.get().getUsername());
-        assertEquals("john@example.com", foundUser.get().getEmail());
-        assertEquals("08123456789", foundUser.get().getPhone());
+        assertEquals(testUser.getId(), foundUser.get().getId());
+        assertEquals(testUser.getUsername(), foundUser.get().getUsername());
+    }
+    
+    @Test
+    void testFindByIdNonExistent() {
+        // Act
+        Optional<User> foundUser = userRepository.findById("non-existent-id");
+        
+        // Assert
+        assertFalse(foundUser.isPresent());
     }
 
     @Test
-    void testFindUserNotFound() {
-        // Arrange
-        String userId = UUID.randomUUID().toString();
-
+    void testFindByUsername() {
         // Act
-        Optional<User> foundUser = userRepository.findById(userId);
-
+        Optional<User> foundUser = userRepository.findByUsername(testUser.getUsername());
+        
+        // Assert
+        assertTrue(foundUser.isPresent());
+        assertEquals(testUser.getId(), foundUser.get().getId());
+        assertEquals(testUser.getUsername(), foundUser.get().getUsername());
+    }
+    
+    @Test
+    void testFindByUsernameNonExistent() {
+        // Act
+        Optional<User> foundUser = userRepository.findByUsername("non-existent-username");
+        
         // Assert
         assertFalse(foundUser.isPresent());
+    }
+
+    @Test
+    void testFindByEmail() {
+        // Act
+        Optional<User> foundUser = userRepository.findByEmail(testUser.getEmail());
+        
+        // Assert
+        assertTrue(foundUser.isPresent());
+        assertEquals(testUser.getId(), foundUser.get().getId());
+        assertEquals(testUser.getEmail(), foundUser.get().getEmail());
+    }
+    
+    @Test
+    void testFindByEmailNonExistent() {
+        // Act
+        Optional<User> foundUser = userRepository.findByEmail("non-existent@example.com");
+        
+        // Assert
+        assertFalse(foundUser.isPresent());
+    }
+    
+    @Test
+    void testSave() {
+        // Arrange
+        User newUser = new User();
+        String newUserId = UUID.randomUUID().toString();
+        newUser.setId(newUserId);
+        newUser.setUsername("newuser");
+        newUser.setEmail("new@example.com");
+        
+        // Act
+        userRepository.save(newUser);
+        Optional<User> foundUser = userRepository.findById(newUserId);
+        
+        // Assert
+        assertTrue(foundUser.isPresent());
+        assertEquals(newUserId, foundUser.get().getId());
+        assertEquals("newuser", foundUser.get().getUsername());
     }
 }
