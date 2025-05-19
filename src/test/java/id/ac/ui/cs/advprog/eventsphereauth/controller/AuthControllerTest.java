@@ -8,9 +8,12 @@ import id.ac.ui.cs.advprog.eventsphereauth.exception.AuthenticationException;
 import id.ac.ui.cs.advprog.eventsphereauth.exception.UserAlreadyExistsException;
 import id.ac.ui.cs.advprog.eventsphereauth.service.AuthenticationService;
 import id.ac.ui.cs.advprog.eventsphereauth.service.JwtService;
+import id.ac.ui.cs.advprog.eventsphereauth.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,6 +23,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import id.ac.ui.cs.advprog.eventsphereauth.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,6 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @WebMvcTest(AuthController.class)
+@Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class AuthControllerTest {
 
     @Autowired
