@@ -10,6 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      APP_ADMIN_EMAIL: ${{ secrets.APP_ADMIN_EMAIL }}
+      APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

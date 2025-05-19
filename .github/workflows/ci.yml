@@ -9,6 +9,11 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
 
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      APP_ADMIN_EMAIL: ${{ vars.APP_ADMIN_EMAIL }}
+      APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
