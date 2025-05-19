@@ -1,80 +1,95 @@
 package id.ac.ui.cs.advprog.eventsphereauth.model;
 
-import lombok.AllArgsConstructor;
+import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Generated;
+import org.hibernate.annotations.GenericGenerator;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
-import java.util.regex.Pattern;
-
+@Entity
+@Table(name = "users")
+@Generated
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class User implements UserDetails {
-    private String id;
+
+    @Id
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name="UUID", strategy="org.hibernate.id.UUIDGenerator")
+    @Column(name="id", updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(name = "username", nullable = false)
     private String username;
-    private String password;
-    private boolean enabled;
-    private Collection<? extends GrantedAuthority> authorities;
+
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
-    private String phone;
-    private double balance;
 
-    private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+    @Column(name = "phone_number", nullable = false)
+    private String phoneNumber;
 
-    public User(String id, String username, String email, String password, String phone, double balance) {
-        this.id = id;
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role = Role.USER;
+
+    @Column(name = "balance", nullable = false)
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    public User() {
+    }
+
+    public User(String username, String email, String phoneNumber, String password) {
         this.username = username;
-        setEmail(email);
-        setPassword(password);
-        this.phone = phone;
-        this.balance = balance;
+        this.email = email;
+        this.password = password;
+        this.phoneNumber = phoneNumber;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
+
     @Override
     public String getPassword() {
         return password;
     }
+
+    public String getDisplayName() {
+        return this.username;
+    }
+
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
+
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
+
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
+
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
+
     @Override
     public boolean isEnabled() {
-        return enabled;
-    }
-
-
-    public void setEmail(String email) {
-        if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
-            throw new IllegalArgumentException("Invalid email format");
-        }
-        this.email = email;
-    }
-
-    public void setPassword(String password) {
-        if (password == null || password.length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters");
-        }
-        this.password = password;
+        return true;
     }
 }

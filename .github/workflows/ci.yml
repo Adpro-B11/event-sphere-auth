@@ -3,20 +3,27 @@ name: Continuous Integration (CI)
 on:
   push:
   pull_request:
+
 jobs:
   test:
     name: Run Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      APP_ADMIN_EMAIL: ${{ vars.APP_ADMIN_EMAIL }}
+      APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Setup Java Toolchain
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-          cache: 'gradle'
-      - name: Add gradlew permission
-        run: chmod +x gradlew
+          cache: 'maven'
+
       - name: Run Unit Tests
-        run: ./gradlew test
+        run: mvn test

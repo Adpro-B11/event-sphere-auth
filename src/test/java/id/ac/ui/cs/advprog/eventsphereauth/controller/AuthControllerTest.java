@@ -3,152 +3,113 @@ package id.ac.ui.cs.advprog.eventsphereauth.controller;
 import id.ac.ui.cs.advprog.eventsphereauth.dto.AuthResponse;
 import id.ac.ui.cs.advprog.eventsphereauth.dto.LoginRequest;
 import id.ac.ui.cs.advprog.eventsphereauth.dto.RegisterRequest;
-import id.ac.ui.cs.advprog.eventsphereauth.dto.TokenValidationResponse;
-import id.ac.ui.cs.advprog.eventsphereauth.exception.AuthenticationException;
-import id.ac.ui.cs.advprog.eventsphereauth.exception.UserAlreadyExistsException;
-import id.ac.ui.cs.advprog.eventsphereauth.service.AuthenticationService;
-import id.ac.ui.cs.advprog.eventsphereauth.service.JwtService;
-import id.ac.ui.cs.advprog.eventsphereauth.config.SecurityConfig;
+import id.ac.ui.cs.advprog.eventsphereauth.dto.UserResponse;
+import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
+import id.ac.ui.cs.advprog.eventsphereauth.service.AuthService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.test.context.support.WithMockUser;
-import id.ac.ui.cs.advprog.eventsphereauth.security.JwtAuthenticationFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import java.util.UUID;
 
-@WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
-@AutoConfigureMockMvc(addFilters = false)
-public class AuthControllerTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Autowired
-    private MockMvc mockMvc;
+@ExtendWith(MockitoExtension.class)
+class AuthControllerTest {
 
-    @MockBean
-    private AuthenticationService authenticationService;
-    
-    @MockBean
-    private JwtService jwtService;
-    
-    @MockBean
-    private UserDetailsService userDetailsService;
-    
-    @MockBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Mock
+    private AuthService authService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @InjectMocks
+    private AuthController authController;
 
-    @Test
-    public void registerShouldReturnToken() throws Exception {
-        RegisterRequest request = new RegisterRequest(
-                "testuser",
-                "test@example.com",
-                "Password123!",
-                "1234567890"
-        );
-        
-        AuthResponse response = new AuthResponse("jwt-token");
-        
-        when(authenticationService.register(any(RegisterRequest.class))).thenReturn(response);
-        
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token"));
+    private RegisterRequest registerRequest;
+    private LoginRequest loginRequest;
+    private AuthResponse authResponse;
+    private UserResponse userResponse;
+    private UUID userId;
+
+    @BeforeEach
+    void setUp() {
+        userId = UUID.randomUUID();
+        registerRequest = RegisterRequest.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .phoneNumber("1234567890")
+                .password("password")
+                .build();
+
+        loginRequest = LoginRequest.builder()
+                .email("test@example.com")
+                .password("password")
+                .build();
+
+        userResponse = UserResponse.builder()
+                .id(userId)
+                .username("testuser")
+                .email("test@example.com")
+                .phoneNumber("1234567890")
+                .role(Role.USER)
+                .balance(null)
+                .build();
+
+        authResponse = AuthResponse.builder()
+                .token("mockedToken")
+                .user(userResponse)
+                .build();
     }
-    
+
     @Test
-    public void registerShouldReturnConflictWhenUserExists() throws Exception {
-        RegisterRequest request = new RegisterRequest(
-                "existingUser",
-                "existing@example.com",
-                "Password123!",
-                "1234567890"
-        );
-        
-        when(authenticationService.register(any(RegisterRequest.class)))
-                .thenThrow(new UserAlreadyExistsException("Username already exists"));
-        
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict());
+    void testRegisterSuccess() {
+        when(authService.register(registerRequest)).thenReturn(authResponse);
+
+        ResponseEntity<AuthResponse> responseEntity = authController.register(registerRequest);
+
+        assertNotNull(responseEntity);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(authResponse, responseEntity.getBody());
+
+        verify(authService, times(1)).register(registerRequest);
     }
-    
+
     @Test
-    public void loginShouldReturnToken() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "Password123!");
-        AuthResponse response = new AuthResponse("jwt-token");
-        
-        when(authenticationService.login(any(LoginRequest.class))).thenReturn(response);
-        
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token"));
+    void testRegisterFailure() {
+        when(authService.register(registerRequest)).thenThrow(new IllegalArgumentException("Email already exists"));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            authController.register(registerRequest);
+        });
+
+        verify(authService, times(1)).register(registerRequest);
     }
-    
+
     @Test
-    public void loginShouldReturnUnauthorizedWhenInvalidCredentials() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "wrongPassword");
-        
-        when(authenticationService.login(any(LoginRequest.class)))
-                .thenThrow(new AuthenticationException("Invalid username or password"));
-        
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+    void testLoginSuccess() {
+        when(authService.login(loginRequest)).thenReturn(authResponse);
+
+        ResponseEntity<AuthResponse> responseEntity = authController.login(loginRequest);
+
+        assertNotNull(responseEntity);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(authResponse, responseEntity.getBody());
+
+        verify(authService, times(1)).login(loginRequest);
     }
-    
+
     @Test
-    @WithMockUser
-    public void validateTokenShouldReturnValidWhenTokenIsValid() throws Exception {
-        String token = "valid-jwt-token";
-        UserDetails userDetails = mock(UserDetails.class);
-        
-        when(jwtService.extractUsername(token)).thenReturn("testuser");
-        when(userDetailsService.loadUserByUsername("testuser")).thenReturn(userDetails);
-        when(jwtService.isTokenValid(token, userDetails)).thenReturn(true);
-        
-        mockMvc.perform(get("/api/auth/validate")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.valid").value(true))
-                .andExpect(jsonPath("$.username").value("testuser"));
-    }
-    
-    @Test
-    @WithMockUser
-    public void validateTokenShouldReturnInvalidWhenTokenIsInvalid() throws Exception {
-        String token = "invalid-jwt-token";
-        UserDetails userDetails = mock(UserDetails.class);
-        
-        when(jwtService.extractUsername(token)).thenReturn("testuser");
-        when(userDetailsService.loadUserByUsername("testuser")).thenReturn(userDetails);
-        when(jwtService.isTokenValid(token, userDetails)).thenReturn(false);
-        
-        mockMvc.perform(get("/api/auth/validate")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.valid").value(false));
+    void testLoginFailure() {
+        when(authService.login(loginRequest)).thenThrow(new IllegalArgumentException("User not found"));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            authController.login(loginRequest);
+        });
+
+        verify(authService, times(1)).login(loginRequest);
     }
 }
