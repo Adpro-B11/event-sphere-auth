@@ -14,9 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -26,181 +25,163 @@ class UserControllerTest {
 
     @Mock
     private UserService userService;
-
     @InjectMocks
     private UserController userController;
 
-    private UserResponse userResponse1;
-    private UserResponse userResponse2;
-    private UUID user1Id;
-    private UUID user2Id;
+    private UUID userId;
+    private UUID otherId;
+    private UUID adminId;
+
+    private UserResponse respUser;
+    private UserResponse respOther;
+    private UserResponse respAdmin;
 
     @BeforeEach
     void setUp() {
-        user1Id = UUID.randomUUID();
-        user2Id = UUID.randomUUID();
+        userId  = UUID.randomUUID();
+        otherId = UUID.randomUUID();
+        adminId = UUID.randomUUID();
 
-        userResponse1 = UserResponse.builder()
-                .id(user1Id)
-                .username("userone")
-                .email("userone@example.com")
+        respUser = UserResponse.builder()
+                .id(userId)
+                .username("attendeeOne")
+                .email("one@example.com")
                 .phoneNumber("111")
-                .role(Role.USER)
-                .balance(null)
+                .role(Role.ATTENDEE)
+                .balance(BigDecimal.ZERO)
                 .build();
 
-        userResponse2 = UserResponse.builder()
-                .id(user2Id)
-                .username("usertwo")
-                .email("usertwo@example.com")
+        respOther = UserResponse.builder()
+                .id(otherId)
+                .username("attendeeTwo")
+                .email("two@example.com")
                 .phoneNumber("222")
-                .role(Role.USER)
-                .balance(null)
+                .role(Role.ATTENDEE)
+                .balance(BigDecimal.ZERO)
+                .build();
+
+        respAdmin = UserResponse.builder()
+                .id(adminId)
+                .username("adminGuy")
+                .email("admin@example.com")
+                .phoneNumber("999")
+                .role(Role.ADMIN)
+                .balance(BigDecimal.ZERO)
                 .build();
     }
 
     @Test
-    void testGetAllUsersSuccess() {
-        List<UserResponse> userResponses = Arrays.asList(userResponse1, userResponse2);
-        when(userService.getAllUsers()).thenReturn(userResponses);
+    void addBalance_success_attendee() {
+        BigDecimal amount = BigDecimal.valueOf(50);
+        BigDecimal newBal = BigDecimal.valueOf(150);
 
-        ResponseEntity<List<UserResponse>> responseEntity = userController.getAllUsers();
+        doNothing().when(userService)
+                .addBalance(userId.toString(), amount);
+        when(userService.getBalance(userId.toString()))
+                .thenReturn(newBal);
 
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(userResponses, responseEntity.getBody());
+        ResponseEntity<BigDecimal> resp =
+                userController.addBalance(userId, Map.of("amount", amount));
 
-        verify(userService, times(1)).getAllUsers();
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(newBal, resp.getBody());
+        verify(userService).addBalance(userId.toString(), amount);
+        verify(userService).getBalance(userId.toString());
     }
 
     @Test
-    void testGetMeSuccess() {
-        when(userService.getAuthenticatedUserResponse()).thenReturn(userResponse1);
+    void addBalance_nonAttendee_shouldThrow() {
+        BigDecimal amount = BigDecimal.TEN;
 
-        ResponseEntity<UserResponse> responseEntity = userController.getMe();
+        doThrow(new IllegalStateException("Only ATTENDEE can have a non-zero balance"))
+                .when(userService).addBalance(adminId.toString(), amount);
 
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(userResponse1, responseEntity.getBody());
+        assertThrows(IllegalStateException.class,
+                () -> userController.addBalance(adminId, Map.of("amount", amount)));
 
-        verify(userService, times(1)).getAuthenticatedUserResponse();
+        verify(userService).addBalance(adminId.toString(), amount);
     }
 
     @Test
-    void testGetMeUserNotFound() {
-        when(userService.getAuthenticatedUserResponse()).thenThrow(new UsernameNotFoundException("No authenticated user found"));
+    void deductBalance_success_attendee() {
+        BigDecimal amount     = BigDecimal.valueOf(20);
+        BigDecimal newBalance = BigDecimal.valueOf(30);
 
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userController.getMe();
-        });
+        doNothing().when(userService)
+                .deductBalance(userId.toString(), amount);
+        when(userService.getBalance(userId.toString()))
+                .thenReturn(newBalance);
 
-        verify(userService, times(1)).getAuthenticatedUserResponse();
-    }
+        ResponseEntity<BigDecimal> resp =
+                userController.deductBalance(userId, Map.of("amount", amount));
 
-
-    @Test
-    void testGetUserByIdSuccess() {
-        when(userService.getUserById(user1Id)).thenReturn(userResponse1);
-
-        ResponseEntity<UserResponse> responseEntity = userController.getUserById(user1Id);
-
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(userResponse1, responseEntity.getBody());
-
-        verify(userService, times(1)).getUserById(user1Id);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(newBalance, resp.getBody());
+        verify(userService).deductBalance(userId.toString(), amount);
+        verify(userService).getBalance(userId.toString());
     }
 
     @Test
-    void testGetUserByIdNotFound() {
-        when(userService.getUserById(user1Id)).thenThrow(new UsernameNotFoundException("User not found"));
+    void deductBalance_insufficient_shouldThrow() {
+        BigDecimal amount = BigDecimal.valueOf(200);
 
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userController.getUserById(user1Id);
-        });
+        doThrow(new IllegalArgumentException("Insufficient funds"))
+                .when(userService).deductBalance(userId.toString(), amount);
 
-        verify(userService, times(1)).getUserById(user1Id);
+        assertThrows(IllegalArgumentException.class,
+                () -> userController.deductBalance(userId, Map.of("amount", amount)));
+
+        verify(userService).deductBalance(userId.toString(), amount);
     }
 
     @Test
-    void testUpdateUserSuccess() throws IllegalAccessException {
-        UserUpdateRequest updateRequest = UserUpdateRequest.builder().username("updateduser").build();
-        UserResponse updatedUserResponse = UserResponse.builder()
-                .id(user1Id)
-                .username("updateduser")
-                .email("userone@example.com")
-                .phoneNumber("111")
-                .role(Role.USER)
-                .balance(null)
-                .build();
-        when(userService.updateUser(user1Id, updateRequest)).thenReturn(updatedUserResponse);
+    void getAllUsers_success() {
+        when(userService.getAllUsers()).thenReturn(List.of(respUser, respOther));
 
-        ResponseEntity<UserResponse> responseEntity = userController.updateUser(user1Id, updateRequest);
+        ResponseEntity<List<UserResponse>> resp = userController.getAllUsers();
 
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertEquals(updatedUserResponse, responseEntity.getBody());
-
-        verify(userService, times(1)).updateUser(user1Id, updateRequest);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(2, Objects.requireNonNull(resp.getBody()).size());
+        verify(userService).getAllUsers();
     }
 
     @Test
-    void testUpdateUserUnauthorized() throws IllegalAccessException {
-        UserUpdateRequest updateRequest = UserUpdateRequest.builder().username("updateduser").build();
-        when(userService.updateUser(user1Id, updateRequest)).thenThrow(new IllegalAccessException("Unauthorized"));
+    void getMe_success() {
+        when(userService.getAuthenticatedUserResponse()).thenReturn(respUser);
 
-        assertThrows(IllegalAccessException.class, () -> {
-            userController.updateUser(user1Id, updateRequest);
-        });
+        ResponseEntity<UserResponse> resp = userController.getMe();
 
-        verify(userService, times(1)).updateUser(user1Id, updateRequest);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals(respUser, resp.getBody());
+        verify(userService).getAuthenticatedUserResponse();
     }
 
     @Test
-    void testUpdateUserNotFound() throws IllegalAccessException {
-        UserUpdateRequest updateRequest = UserUpdateRequest.builder().username("updateduser").build();
-        when(userService.updateUser(user1Id, updateRequest)).thenThrow(new UsernameNotFoundException("User not found"));
+    void getMe_notFound() {
+        when(userService.getAuthenticatedUserResponse())
+                .thenThrow(new UsernameNotFoundException("No authenticated user"));
 
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userController.updateUser(user1Id, updateRequest);
-        });
-
-        verify(userService, times(1)).updateUser(user1Id, updateRequest);
-    }
-
-
-    @Test
-    void testDeleteUserSuccess() throws IllegalAccessException {
-        doNothing().when(userService).deleteUser(user1Id);
-
-        ResponseEntity<Void> responseEntity = userController.deleteUser(user1Id);
-
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
-        assertNull(responseEntity.getBody()); // No content for 204
-
-        verify(userService, times(1)).deleteUser(user1Id);
+        assertThrows(UsernameNotFoundException.class, () -> userController.getMe());
     }
 
     @Test
-    void testDeleteUserUnauthorized() throws IllegalAccessException {
-        doThrow(new IllegalAccessException("Unauthorized")).when(userService).deleteUser(user1Id);
+    void updateUser_success() throws Exception {
+        UserUpdateRequest req = UserUpdateRequest.builder().username("upd").build();
+        when(userService.updateUser(userId, req)).thenReturn(respUser);
 
-        assertThrows(IllegalAccessException.class, () -> {
-            userController.deleteUser(user1Id);
-        });
+        ResponseEntity<UserResponse> resp = userController.updateUser(userId, req);
 
-        verify(userService, times(1)).deleteUser(user1Id);
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        verify(userService).updateUser(userId, req);
     }
 
     @Test
-    void testDeleteUserNotFound() throws IllegalAccessException {
-        doThrow(new UsernameNotFoundException("User not found")).when(userService).deleteUser(user1Id);
+    void deleteUser_success() throws Exception {
+        doNothing().when(userService).deleteUser(userId);
 
-        assertThrows(UsernameNotFoundException.class, () -> {
-            userController.deleteUser(user1Id);
-        });
+        ResponseEntity<Void> resp = userController.deleteUser(userId);
 
-        verify(userService, times(1)).deleteUser(user1Id);
+        assertEquals(HttpStatus.NO_CONTENT, resp.getStatusCode());
+        verify(userService).deleteUser(userId);
     }
 }

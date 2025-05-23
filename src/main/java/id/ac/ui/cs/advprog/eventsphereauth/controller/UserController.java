@@ -8,7 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -48,4 +50,27 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/balance/add")
+    public ResponseEntity<BigDecimal> addBalance(
+            @PathVariable UUID id,
+            @RequestBody Map<String, BigDecimal> payload
+    ) {
+        BigDecimal amount = payload.get("amount");
+        userService.addBalance(id.toString(), amount);
+        BigDecimal newBalance = userService.getBalance(id.toString());
+        return ResponseEntity.ok(newBalance);
+    }
+
+    @PostMapping("/{id}/balance/deduct")
+    public ResponseEntity<BigDecimal> deductBalance(
+            @PathVariable UUID id,
+            @RequestBody Map<String, BigDecimal> payload
+    ) {
+        BigDecimal amount = payload.get("amount");
+        userService.deductBalance(id.toString(), amount);
+        BigDecimal newBalance = userService.getBalance(id.toString());
+        return ResponseEntity.ok(newBalance);
+    }
+
 }
