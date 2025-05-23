@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException; 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Recommended
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -87,6 +88,61 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+     public boolean isNotValidUUID(String input) {
+        try {
+            UUID.fromString(input);
+            return false;
+        } catch (IllegalArgumentException e) {
+            return true;
+        }
+    }
+
+    @Transactional
+    public void addBalance(String userId, BigDecimal amount) {
+        User user = validationBalance(userId, amount);
+
+        BigDecimal newBalance = user.getBalance().add(amount);
+        user.setBalance(newBalance);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deductBalance(String userId, BigDecimal amount) {
+        User user = validationBalance(userId, amount);
+
+        if (user.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("User balance is not enough to deduct the requested amount");
+        }
+        BigDecimal newBalance = user.getBalance().subtract(amount);
+        user.setBalance(newBalance);
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    protected User validationBalance(String userId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        if (isNotValidUUID(userId)) {
+            throw new IllegalArgumentException("Invalid user ID format: " + userId);
+        }
+        UUID uuid = UUID.fromString(userId);
+
+        return userRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getBalance(String userId) {
+        if (isNotValidUUID(userId)) {
+            throw new IllegalArgumentException("Invalid user ID format: " + userId);
+        }
+        UUID uuid = UUID.fromString(userId);
+        User user = userRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        return user.getBalance();
+    }
+
     private User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal().toString())) {
@@ -108,4 +164,5 @@ public class UserServiceImpl implements UserService {
                 .balance(user.getBalance())
                 .build();
     }
+
 }
