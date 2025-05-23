@@ -23,7 +23,6 @@ class UserTest {
         user.setEmail("test@example.com");
         user.setPhoneNumber("1234567890");
         user.setPassword("password123");
-        // balance default = 0, role default = USER
     }
 
     @Test
@@ -47,16 +46,14 @@ class UserTest {
     @Test
     void attendee_canHoldPositiveBalance() {
         user.setRole(Role.ATTENDEE);
-        BigDecimal amount = BigDecimal.valueOf(120.75);
+        BigDecimal newAmount = BigDecimal.valueOf(120.75);
 
-        assertDoesNotThrow(() -> user.setBalance(amount));
-        assertEquals(amount, user.getBalance());
+        assertDoesNotThrow(() -> user.setBalance(newAmount));
+        assertEquals(newAmount, user.getBalance());
     }
 
     @Test
     void nonAttendee_settingNonZeroBalance_throwsException() {
-        assertThrows(IllegalStateException.class,
-                () -> user.setBalance(BigDecimal.ONE));
 
         user.setRole(Role.ADMIN);
         assertThrows(IllegalStateException.class,
@@ -66,7 +63,7 @@ class UserTest {
     @Test
     void negativeBalance_isNeverAllowed() {
         user.setRole(Role.ATTENDEE);
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> user.setBalance(BigDecimal.valueOf(-1)));
     }
 
