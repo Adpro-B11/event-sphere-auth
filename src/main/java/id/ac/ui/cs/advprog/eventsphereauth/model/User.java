@@ -44,6 +44,30 @@ public class User implements UserDetails {
     @Column(name = "balance", nullable = false)
     private BigDecimal balance = BigDecimal.ZERO;
 
+    @PrePersist
+    @PreUpdate
+    private void validateBalanceAndRole() {
+        if (role != Role.ATTENDEE && balance != null && balance.compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalStateException("Only ATTENDEE can have a non-zero balance.");
+        }
+        if (balance != null && balance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("Balance cannot be negative.");
+        }
+    }
+
+    public void setBalance(BigDecimal newBalance) {
+        if (newBalance == null) {
+            throw new IllegalArgumentException("Balance cannot be null.");
+        }
+        if (role != Role.ATTENDEE && newBalance.compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalStateException("Only ATTENDEE can have a non-zero balance.");
+        }
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("Balance cannot be negative.");
+        }
+        this.balance = newBalance;
+    }
+
     public User() {
     }
 
