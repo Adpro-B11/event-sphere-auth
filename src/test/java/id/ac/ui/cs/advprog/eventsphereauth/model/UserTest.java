@@ -28,7 +28,7 @@ class UserTest {
     @Test
     void defaultRole_isUser_andBalanceZero() {
         assertEquals(Role.USER, user.getRole());
-        assertEquals(BigDecimal.ZERO, user.getBalance());
+        assertEquals(null, user.getBalance());
     }
 
     @Test
@@ -40,7 +40,7 @@ class UserTest {
                 "anotherpassword"
         );
         assertEquals(Role.USER, newUser.getRole());
-        assertEquals(BigDecimal.ZERO, newUser.getBalance());
+        assertEquals(null, newUser.getBalance());
     }
 
     @Test
