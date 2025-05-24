@@ -5,17 +5,21 @@ import id.ac.ui.cs.advprog.eventsphereauth.dto.UserUpdateRequest;
 import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
 import id.ac.ui.cs.advprog.eventsphereauth.model.User;
 import id.ac.ui.cs.advprog.eventsphereauth.repository.UserRepository;
+import org.apache.commons.compress.changes.ChangeSetPerformer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.mockito.Mockito;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -371,7 +375,7 @@ class UserServiceImplTest {
         assertEquals("test@example.com", userResponse.getEmail());
         assertEquals("1234567890", userResponse.getPhoneNumber());
         assertEquals(Role.USER, userResponse.getRole());
-        assertEquals(java.math.BigDecimal.valueOf(0), userResponse.getBalance());
+        assertEquals(null, userResponse.getBalance());
     }
 
     @Test
@@ -433,7 +437,7 @@ class UserServiceImplTest {
     @Test
     void testDeductBalanceInsufficientFunds() {
         when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalStateException.class,
                 () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(1))
         );
     }
@@ -484,5 +488,49 @@ class UserServiceImplTest {
         assertThrows(IllegalArgumentException.class,
                 () -> userService.getBalance(user2Id.toString())
         );
+    }
+
+    @Test
+    void addBalanceConnectivityErrorReturns503() {
+        user1.setRole(Role.ATTENDEE);
+        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
+        doThrow(new RestClientException("connection")).when(userRepository).save(any(User.class));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userService.addBalance(user1Id.toString(), BigDecimal.valueOf(10)));
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatusCode());
+    }
+
+    @Test
+    void deductBalanceInsufficientFundsReturns400() {
+        user1.setRole(Role.ATTENDEE);
+        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(150)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void deductBalanceSystemErrorReturns500() {
+        user1.setRole(Role.ATTENDEE);
+        BigDecimal amount = BigDecimal.valueOf(100.25);
+        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
+
+        userService.addBalance(user1Id.toString(), amount);
+
+        verify(userRepository).save(argThat(u ->
+                u.getId().equals(user1Id) && u.getBalance().compareTo(amount) == 0
+        ));
+
+        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
+        doThrow(new RuntimeException("system")).when(userRepository).save(any(User.class));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(50)));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
     }
 }

@@ -6,11 +6,14 @@ import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
 import id.ac.ui.cs.advprog.eventsphereauth.model.User;
 import id.ac.ui.cs.advprog.eventsphereauth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException; // Consistent exception type
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Recommended
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -100,22 +103,32 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void addBalance(String userId, BigDecimal amount) {
         User user = validationBalance(userId, amount);
-
-        BigDecimal newBalance = user.getBalance().add(amount);
-        user.setBalance(newBalance);
-        userRepository.save(user);
+        try {
+            BigDecimal newBalance = user.getBalance().add(amount);
+            user.setBalance(newBalance);
+            userRepository.save(user);
+        } catch (RestClientException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "CONNECTION_ERROR");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "SYSTEM_ERROR");
+        }
     }
 
     @Transactional
     public void deductBalance(String userId, BigDecimal amount) {
         User user = validationBalance(userId, amount);
-
         if (user.getBalance().compareTo(amount) < 0) {
-            throw new IllegalArgumentException("User balance is not enough to deduct the requested amount");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE");
         }
-        BigDecimal newBalance = user.getBalance().subtract(amount);
-        user.setBalance(newBalance);
-        userRepository.save(user);
+        try {
+            BigDecimal newBalance = user.getBalance().subtract(amount);
+            user.setBalance(newBalance);
+            userRepository.save(user);
+        } catch (RestClientException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "CONNECTION_ERROR");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "SYSTEM_ERROR");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -127,9 +140,12 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Invalid user ID format: " + userId);
         }
         UUID uuid = UUID.fromString(userId);
-
-        return userRepository.findById(uuid)
+        User user = userRepository.findById(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        if (user.getRole() != Role.ATTENDEE) {
+            throw new IllegalStateException("Only ATTENDEE can perform balance operations");
+        }
+        return user;
     }
 
     @Transactional(readOnly = true)
@@ -140,8 +156,12 @@ public class UserServiceImpl implements UserService {
         UUID uuid = UUID.fromString(userId);
         User user = userRepository.findById(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        if (user.getRole() != Role.ATTENDEE) {
+            throw new IllegalStateException("Only ATTENDEE can perform balance operations");
+        }
         return user.getBalance();
     }
+
 
     private User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
