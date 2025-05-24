@@ -46,7 +46,7 @@ class UserControllerTest {
                 .email("userone@example.com")
                 .phoneNumber("111")
                 .role(Role.USER)
-                .balance(null)
+                .balance(BigDecimal.ZERO)
                 .build();
 
         userResponse2 = UserResponse.builder()
@@ -55,7 +55,7 @@ class UserControllerTest {
                 .email("usertwo@example.com")
                 .phoneNumber("222")
                 .role(Role.USER)
-                .balance(null)
+                .balance(BigDecimal.ZERO)
                 .build();
     }
 
@@ -131,7 +131,7 @@ class UserControllerTest {
                 .email("userone@example.com")
                 .phoneNumber("111")
                 .role(Role.USER)
-                .balance(null)
+                .balance(BigDecimal.ZERO)
                 .build();
         when(userService.updateUser(user1Id, updateRequest)).thenReturn(updatedUserResponse);
 
