@@ -52,25 +52,29 @@ public class UserController {
     }
 
     @PostMapping("/{id}/balance/add")
-    public ResponseEntity<BigDecimal> addBalance(
+    public ResponseEntity<Void> addBalance(
             @PathVariable UUID id,
             @RequestBody Map<String, BigDecimal> payload
     ) {
         BigDecimal amount = payload.get("amount");
         userService.addBalance(id.toString(), amount);
-        BigDecimal newBalance = userService.getBalance(id.toString());
-        return ResponseEntity.ok(newBalance);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/balance/deduct")
-    public ResponseEntity<BigDecimal> deductBalance(
+    public ResponseEntity<Void> deductBalance(
             @PathVariable UUID id,
             @RequestBody Map<String, BigDecimal> payload
     ) {
         BigDecimal amount = payload.get("amount");
         userService.deductBalance(id.toString(), amount);
-        BigDecimal newBalance = userService.getBalance(id.toString());
-        return ResponseEntity.ok(newBalance);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/balance")
+    public ResponseEntity<BigDecimal> getBalance(@PathVariable UUID id) {
+        BigDecimal balance = userService.getBalance(id.toString());
+        return ResponseEntity.ok(balance);
     }
 
 }

@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -204,74 +205,119 @@ class UserControllerTest {
     }
 
     @Test
-    void testAddBalanceSuccess() {
-        BigDecimal amount = new BigDecimal("50.00");
-        BigDecimal newBalance = new BigDecimal("150.00");
+    void addBalanceSuccess() {
+        BigDecimal amount = BigDecimal.valueOf(50);
         Map<String, BigDecimal> payload = new HashMap<>();
         payload.put("amount", amount);
 
         doNothing().when(userService).addBalance(user1Id.toString(), amount);
-        when(userService.getBalance(user1Id.toString())).thenReturn(newBalance);
 
-        ResponseEntity<BigDecimal> response = userController.addBalance(user1Id, payload);
+        ResponseEntity<Void> response = userController.addBalance(user1Id, payload);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(newBalance, response.getBody());
-
+        assertNull(response.getBody());
         verify(userService, times(1)).addBalance(user1Id.toString(), amount);
-        verify(userService, times(1)).getBalance(user1Id.toString());
     }
 
     @Test
-    void testAddBalanceUserNotFound() {
-        BigDecimal amount = new BigDecimal("50.00");
+    void addBalanceUserNotFoundReturns404() {
+        BigDecimal amount = BigDecimal.valueOf(50);
         Map<String, BigDecimal> payload = new HashMap<>();
         payload.put("amount", amount);
 
-        doThrow(new UsernameNotFoundException("User not found"))
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND))
                 .when(userService).addBalance(user1Id.toString(), amount);
 
-        assertThrows(UsernameNotFoundException.class, () ->
-                userController.addBalance(user1Id, payload));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userController.addBalance(user1Id, payload));
 
-        verify(userService, times(1)).addBalance(user1Id.toString(), amount);
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(userService).addBalance(user1Id.toString(), amount);
     }
 
-    /* ---------- NEW: deductBalance ---------- */
-
     @Test
-    void testDeductBalanceSuccess() {
-        BigDecimal amount = new BigDecimal("30.00");
-        BigDecimal newBalance = new BigDecimal("70.00");
+    void deductBalanceSuccess() {
+        BigDecimal amount = BigDecimal.valueOf(30);
         Map<String, BigDecimal> payload = new HashMap<>();
         payload.put("amount", amount);
 
         doNothing().when(userService).deductBalance(user1Id.toString(), amount);
-        when(userService.getBalance(user1Id.toString())).thenReturn(newBalance);
 
-        ResponseEntity<BigDecimal> response = userController.deductBalance(user1Id, payload);
+        ResponseEntity<Void> response = userController.deductBalance(user1Id, payload);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(newBalance, response.getBody());
-
-        verify(userService, times(1)).deductBalance(user1Id.toString(), amount);
-        verify(userService, times(1)).getBalance(user1Id.toString());
+        assertNull(response.getBody());
+        verify(userService).deductBalance(user1Id.toString(), amount);
     }
 
     @Test
-    void testDeductBalanceInsufficientFunds() {
-        BigDecimal amount = new BigDecimal("200.00");
+    void deductBalanceInsufficientFundsReturns400() {
+        BigDecimal amount = BigDecimal.valueOf(200);
         Map<String, BigDecimal> payload = new HashMap<>();
         payload.put("amount", amount);
 
-        doThrow(new IllegalArgumentException("User balance is not enough to deduct the requested amount"))
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST))
                 .when(userService).deductBalance(user1Id.toString(), amount);
 
-        assertThrows(IllegalArgumentException.class, () ->
-                userController.deductBalance(user1Id, payload));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userController.deductBalance(user1Id, payload));
 
-        verify(userService, times(1)).deductBalance(user1Id.toString(), amount);
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(userService).deductBalance(user1Id.toString(), amount);
+    }
+
+    @Test
+    void deductBalanceSystemErrorReturns500() {
+        BigDecimal amount = BigDecimal.valueOf(50);
+        Map<String, BigDecimal> payload = new HashMap<>();
+        payload.put("amount", amount);
+
+        doThrow(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR))
+                .when(userService).deductBalance(user1Id.toString(), amount);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userController.deductBalance(user1Id, payload));
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
+        verify(userService).deductBalance(user1Id.toString(), amount);
+    }
+
+    @Test
+    void getBalanceSuccess() {
+        BigDecimal balance = BigDecimal.valueOf(123.45);
+        when(userService.getBalance(user1Id.toString())).thenReturn(balance);
+
+        ResponseEntity<BigDecimal> response = userController.getBalance(user1Id);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(0, balance.compareTo(response.getBody()));
+        verify(userService).getBalance(user1Id.toString());
+    }
+
+    @Test
+    void getBalanceInvalidUserReturns404() {
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND))
+                .when(userService).getBalance(user1Id.toString());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userController.getBalance(user1Id));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(userService).getBalance(user1Id.toString());
+    }
+
+    @Test
+    void getBalanceNonAttendeeReturns400() {
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST))
+                .when(userService).getBalance(user1Id.toString());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> userController.getBalance(user1Id));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(userService).getBalance(user1Id.toString());
     }
 }
