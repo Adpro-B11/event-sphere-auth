@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,4 +24,7 @@ public interface UserService {
     UserResponse updateUser(UUID id, UserUpdateRequest updateRequest) throws IllegalAccessException;
     void deleteUser(UUID id) throws IllegalAccessException;
     UserResponse mapToUserResponse(id.ac.ui.cs.advprog.eventsphereauth.model.User user);
+    void addBalance(String userId, BigDecimal amount);
+    void deductBalance(String userId, BigDecimal amount);
+    BigDecimal getBalance(String userId);
 }
