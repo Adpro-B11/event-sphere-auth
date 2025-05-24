@@ -6,12 +6,16 @@ import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
 import id.ac.ui.cs.advprog.eventsphereauth.model.User;
 import id.ac.ui.cs.advprog.eventsphereauth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException; // Consistent exception type
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Recommended
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -87,6 +91,78 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+     public boolean isNotValidUUID(String input) {
+        try {
+            UUID.fromString(input);
+            return false;
+        } catch (IllegalArgumentException e) {
+            return true;
+        }
+    }
+
+    @Transactional
+    public void addBalance(String userId, BigDecimal amount) {
+        User user = validationBalance(userId, amount);
+        try {
+            BigDecimal newBalance = user.getBalance().add(amount);
+            user.setBalance(newBalance);
+            userRepository.save(user);
+        } catch (RestClientException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "CONNECTION_ERROR");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "SYSTEM_ERROR");
+        }
+    }
+
+    @Transactional
+    public void deductBalance(String userId, BigDecimal amount) {
+        User user = validationBalance(userId, amount);
+        if (user.getBalance().compareTo(amount) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE");
+        }
+        try {
+            BigDecimal newBalance = user.getBalance().subtract(amount);
+            user.setBalance(newBalance);
+            userRepository.save(user);
+        } catch (RestClientException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "CONNECTION_ERROR");
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "SYSTEM_ERROR");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    protected User validationBalance(String userId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        if (isNotValidUUID(userId)) {
+            throw new IllegalArgumentException("Invalid user ID format: " + userId);
+        }
+        UUID uuid = UUID.fromString(userId);
+        User user = userRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        if (user.getRole() != Role.ATTENDEE) {
+            throw new IllegalStateException("Only ATTENDEE can perform balance operations");
+        }
+        return user;
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getBalance(String userId) {
+        if (isNotValidUUID(userId)) {
+            throw new IllegalArgumentException("Invalid user ID format: " + userId);
+        }
+        UUID uuid = UUID.fromString(userId);
+        User user = userRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        if (user.getRole() != Role.ATTENDEE) {
+            throw new IllegalStateException("Only ATTENDEE can perform balance operations");
+        }
+        return user.getBalance();
+    }
+
+
     private User getCurrentUserEntity() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal().toString())) {
@@ -108,4 +184,5 @@ public class UserServiceImpl implements UserService {
                 .balance(user.getBalance())
                 .build();
     }
+
 }

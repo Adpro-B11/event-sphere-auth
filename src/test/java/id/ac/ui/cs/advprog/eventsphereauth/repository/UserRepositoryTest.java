@@ -32,7 +32,7 @@ class UserRepositoryTest {
         user1.setEmail("test1@example.com");
         user1.setPhoneNumber("111");
         user1.setPassword("password");
-        user1.setRole(Role.USER);
+        user1.setRole(Role.ATTENDEE);
         user1.setBalance(BigDecimal.ZERO);
 
         user2 = new User();
@@ -40,7 +40,7 @@ class UserRepositoryTest {
         user2.setEmail("test2@example.com");
         user2.setPhoneNumber("222");
         user2.setPassword("password");
-        user2.setRole(Role.ORGANIZER);
+        user2.setRole(Role.ATTENDEE);
         user2.setBalance(BigDecimal.valueOf(50.0));
 
         entityManager.persist(user1);
@@ -85,7 +85,7 @@ class UserRepositoryTest {
         newUser.setEmail("new@example.com");
         newUser.setPhoneNumber("333");
         newUser.setPassword("newpassword");
-        newUser.setRole(Role.USER);
+        newUser.setRole(Role.ATTENDEE);
         newUser.setBalance(BigDecimal.valueOf(10.0));
 
         User savedUser = userRepository.save(newUser);
