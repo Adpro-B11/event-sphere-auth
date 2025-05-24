@@ -41,3 +41,4 @@ target/
 
 ### JWT secret key ###
 src/main/resources/application-local.properties
+.env
