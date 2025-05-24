@@ -45,7 +45,7 @@ class UserTest {
 
     @Test
     void attendee_canHoldPositiveBalance() {
-        user.setRole(Role.ATTENDEE);
+        user.setRole(Role.USER);
         BigDecimal newAmount = BigDecimal.valueOf(120.75);
 
         assertDoesNotThrow(() -> user.setBalance(newAmount));
@@ -62,7 +62,6 @@ class UserTest {
 
     @Test
     void negativeBalance_isNeverAllowed() {
-        user.setRole(Role.ATTENDEE);
         assertThrows(IllegalArgumentException.class,
                 () -> user.setBalance(BigDecimal.valueOf(-1)));
     }
