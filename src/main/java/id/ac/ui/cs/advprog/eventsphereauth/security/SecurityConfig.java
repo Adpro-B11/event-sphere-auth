@@ -54,6 +54,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
+                "http://localhost:8080",
+                "http://localhost:8081",
+                "http://localhost:8082",
                 "http://ec2-35-174-243-167.compute-1.amazonaws.com",
                 "http://ec2-52-7-42-79.compute-1.amazonaws.com",
                 "http://ec2-3-219-44-29.compute-1.amazonaws.com",

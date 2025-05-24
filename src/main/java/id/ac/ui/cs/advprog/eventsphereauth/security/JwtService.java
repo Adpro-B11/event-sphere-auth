@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority; // Import GrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +39,15 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        // Add user's role/authority to extraClaims
+        if (userDetails.getAuthorities() != null && !userDetails.getAuthorities().isEmpty()) {
+            // Get the first authority. Spring Security roles often start with "ROLE_".
+            // Example: if UserDetails has authority "ROLE_ADMIN", this will put "ROLE_ADMIN" into the claim.
+            GrantedAuthority firstAuthority = userDetails.getAuthorities().iterator().next();
+            extraClaims.put("role", firstAuthority.getAuthority());
+        }
+        // else, you might want to handle users with no roles, or log a warning.
+
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
