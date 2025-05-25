@@ -1,0 +1,41 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Event Sphere Auth Metrics",
+    "tags": ["spring-boot", "auth", "event-sphere"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "schemaVersion": 27,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Request Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"event-sphere-auth\"}[5m])) by (le))",
+            "legendFormat": "95th percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "User Registrations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "auth_user_registrations_total",
+            "legendFormat": "Total"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+} 

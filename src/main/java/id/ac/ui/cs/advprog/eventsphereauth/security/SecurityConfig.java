@@ -33,13 +33,26 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/events/**").permitAll()
+                        
+                        // Actuator endpoints - allow monitoring without authentication
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/info").permitAll()
+                        .requestMatchers("/actuator/metrics").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN") // Other actuator endpoints require admin
+                        
+                        // User endpoints
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/users/{id}").authenticated()
                         .requestMatchers("/api/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/{id}").hasRole("ADMIN")
+                        
+                        // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -60,7 +73,10 @@ public class SecurityConfig {
                 "http://ec2-35-174-243-167.compute-1.amazonaws.com",
                 "http://ec2-52-7-42-79.compute-1.amazonaws.com",
                 "http://ec2-3-219-44-29.compute-1.amazonaws.com",
-                "http://ec2-52-86-72-158.compute-1.amazonaws.com:3000"
+                "http://ec2-52-86-72-158.compute-1.amazonaws.com:3000",
+                // Add Grafana and Prometheus hosts
+                "http://localhost:3001", // Grafana default port
+                "http://localhost:9090"  // Prometheus default port
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));

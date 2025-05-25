@@ -25,7 +25,6 @@
         <lombok.version>1.18.30</lombok.version>
     </properties>
 
-
     <dependencies>
         <!-- Spring Boot Dependencies with version -->
         <dependency>
@@ -60,7 +59,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- 3. Driver PostgreSQL -->
+        <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -122,7 +121,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>5.4</version> <!-- Use the latest version if needed -->
+            <version>5.4</version>
         </dependency>
 
         <!-- Spring Security -->
@@ -150,9 +149,33 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- MONITORING DEPENDENCIES -->
+        <!-- Spring Boot Actuator for metrics and health endpoints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
+        <!-- Micrometer Prometheus registry for metrics export -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Micrometer core for custom metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
         </dependency>
 
     </dependencies>
@@ -190,19 +213,20 @@
                     <useJUnitPlatform>true</useJUnitPlatform>
                 </configuration>
             </plugin>
-            <!-- Add this FIRST -->
+            
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>21</source>  <!-- Hardcode to avoid property resolution issues -->
+                    <source>21</source>
                     <target>21</target>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
                     </compilerArgs>
-                    <fork>true</fork>  <!-- Critical: Ensures a fresh compiler process -->
-                    <executable>${JAVA_HOME}/bin/javac</executable>  <!-- Explicit JDK 21 path -->
+                    <fork>true</fork>
+                    <executable>${JAVA_HOME}/bin/javac</executable>
                 </configuration>
             </plugin>
 
@@ -217,7 +241,7 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>repackage</goal> <!-- This creates the executable JAR -->
+                            <goal>repackage</goal>
                         </goals>
                     </execution>
                 </executions>
