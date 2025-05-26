@@ -5,13 +5,15 @@ on:
     branches:
       - main
       - staging
-env:
-  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     env:
+      DB_URL: ${{ secrets.DB_URL }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       APP_ADMIN_EMAIL: ${{ secrets.APP_ADMIN_EMAIL }}
       APP_ADMIN_PASSWORD: ${{ secrets.APP_ADMIN_PASSWORD }}
