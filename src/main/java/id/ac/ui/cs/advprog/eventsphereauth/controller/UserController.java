@@ -51,30 +51,4 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/balance/add")
-    public ResponseEntity<Void> addBalance(
-            @PathVariable UUID id,
-            @RequestBody Map<String, BigDecimal> payload
-    ) {
-        BigDecimal amount = payload.get("amount");
-        userService.addBalance(id.toString(), amount);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/{id}/balance/deduct")
-    public ResponseEntity<Void> deductBalance(
-            @PathVariable UUID id,
-            @RequestBody Map<String, BigDecimal> payload
-    ) {
-        BigDecimal amount = payload.get("amount");
-        userService.deductBalance(id.toString(), amount);
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/{id}/balance")
-    public ResponseEntity<BigDecimal> getBalance(@PathVariable UUID id) {
-        BigDecimal balance = userService.getBalance(id.toString());
-        return ResponseEntity.ok(balance);
-    }
-
 }
