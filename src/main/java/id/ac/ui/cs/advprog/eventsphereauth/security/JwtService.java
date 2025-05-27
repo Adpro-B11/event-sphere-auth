@@ -39,14 +39,10 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        // Add user's role/authority to extraClaims
-        if (userDetails.getAuthorities() != null && !userDetails.getAuthorities().isEmpty()) {
-            // Get the first authority. Spring Security roles often start with "ROLE_".
-            // Example: if UserDetails has authority "ROLE_ADMIN", this will put "ROLE_ADMIN" into the claim.
-            GrantedAuthority firstAuthority = userDetails.getAuthorities().iterator().next();
-            extraClaims.put("role", firstAuthority.getAuthority());
+        if (userDetails instanceof id.ac.ui.cs.advprog.eventsphereauth.model.User user) {
+            extraClaims.put("userId", user.getId().toString());
+            extraClaims.put("role", "ROLE_" + user.getRole().name());
         }
-        // else, you might want to handle users with no roles, or log a warning.
 
         return Jwts
                 .builder()
