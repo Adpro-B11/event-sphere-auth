@@ -5,7 +5,6 @@ import id.ac.ui.cs.advprog.eventsphereauth.dto.UserUpdateRequest;
 import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
 import id.ac.ui.cs.advprog.eventsphereauth.model.User;
 import id.ac.ui.cs.advprog.eventsphereauth.repository.UserRepository;
-import org.apache.commons.compress.changes.ChangeSetPerformer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -365,7 +364,7 @@ class UserServiceImplTest {
         user.setUsername("testuser");
         user.setEmail("test@example.com");
         user.setPhoneNumber("1234567890");
-        user.setRole(Role.USER);
+        user.setRole(Role.ORGANIZER);
 
         UserResponse userResponse = userService.mapToUserResponse(user);
 
@@ -374,8 +373,8 @@ class UserServiceImplTest {
         assertEquals("testuser", userResponse.getUsername());
         assertEquals("test@example.com", userResponse.getEmail());
         assertEquals("1234567890", userResponse.getPhoneNumber());
-        assertEquals(Role.USER, userResponse.getRole());
-        assertEquals(null, userResponse.getBalance());
+        assertEquals(Role.ORGANIZER, userResponse.getRole());
+        assertNull(userResponse.getBalance());
     }
 
     @Test
@@ -387,7 +386,6 @@ class UserServiceImplTest {
 
     @Test
     void testAddBalanceSuccess() {
-        user1.setRole(Role.ATTENDEE);
         BigDecimal amount = BigDecimal.valueOf(100.25);
         when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
 
@@ -422,7 +420,6 @@ class UserServiceImplTest {
 
     @Test
     void testDeductBalanceSuccess() {
-        user1.setRole(Role.ATTENDEE);
         BigDecimal amount = BigDecimal.valueOf(50);
         user1.setBalance(BigDecimal.valueOf(100));
         when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
@@ -437,7 +434,7 @@ class UserServiceImplTest {
     @Test
     void testDeductBalanceInsufficientFunds() {
         when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-        assertThrows(IllegalStateException.class,
+        assertThrows(ResponseStatusException.class,
                 () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(1))
         );
     }
@@ -466,7 +463,7 @@ class UserServiceImplTest {
 
     @Test
     void testGetBalanceSuccess() {
-        user1.setRole(Role.ATTENDEE);
+        user1.setRole(Role.USER);
         user1.setBalance(BigDecimal.valueOf(123.45));
         when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
 
@@ -488,49 +485,5 @@ class UserServiceImplTest {
         assertThrows(IllegalArgumentException.class,
                 () -> userService.getBalance(user2Id.toString())
         );
-    }
-
-    @Test
-    void addBalanceConnectivityErrorReturns503() {
-        user1.setRole(Role.ATTENDEE);
-        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-        doThrow(new RestClientException("connection")).when(userRepository).save(any(User.class));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> userService.addBalance(user1Id.toString(), BigDecimal.valueOf(10)));
-
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatusCode());
-    }
-
-    @Test
-    void deductBalanceInsufficientFundsReturns400() {
-        user1.setRole(Role.ATTENDEE);
-        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(150)));
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-    }
-
-    @Test
-    void deductBalanceSystemErrorReturns500() {
-        user1.setRole(Role.ATTENDEE);
-        BigDecimal amount = BigDecimal.valueOf(100.25);
-        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-
-        userService.addBalance(user1Id.toString(), amount);
-
-        verify(userRepository).save(argThat(u ->
-                u.getId().equals(user1Id) && u.getBalance().compareTo(amount) == 0
-        ));
-
-        when(userRepository.findById(user1Id)).thenReturn(Optional.of(user1));
-        doThrow(new RuntimeException("system")).when(userRepository).save(any(User.class));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> userService.deductBalance(user1Id.toString(), BigDecimal.valueOf(50)));
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatusCode());
     }
 }

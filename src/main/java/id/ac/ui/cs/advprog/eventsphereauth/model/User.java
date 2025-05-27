@@ -47,7 +47,7 @@ public class User implements UserDetails {
     @PrePersist
     @PreUpdate
     private void enforceBalanceRule() {
-        if (role == Role.ATTENDEE) {
+        if (role == Role.USER) {
             if (balance == null) balance = BigDecimal.ZERO;
             if (balance.compareTo(BigDecimal.ZERO) < 0) {
                 throw new IllegalArgumentException("Balance cannot be negative.");
@@ -58,7 +58,7 @@ public class User implements UserDetails {
     }
 
     public void setBalance(BigDecimal newBalance) {
-        if (role != Role.ATTENDEE) {
+        if (role != Role.USER) {
             throw new IllegalStateException("Only ATTENDEE can have balance.");
         }
         if (newBalance == null || newBalance.compareTo(BigDecimal.ZERO) < 0) {
@@ -69,7 +69,7 @@ public class User implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
-        if (role != Role.ATTENDEE) {
+        if (role != Role.USER) {
             this.balance = null;
         } else if (this.balance == null) {
             this.balance = BigDecimal.ZERO;

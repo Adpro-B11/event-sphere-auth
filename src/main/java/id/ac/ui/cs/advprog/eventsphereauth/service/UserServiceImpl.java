@@ -142,7 +142,7 @@ public class UserServiceImpl implements UserService {
         UUID uuid = UUID.fromString(userId);
         User user = userRepository.findById(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        if (user.getRole() != Role.ATTENDEE) {
+        if (user.getRole() != Role.USER) {
             throw new IllegalStateException("Only ATTENDEE can perform balance operations");
         }
         return user;
@@ -156,7 +156,7 @@ public class UserServiceImpl implements UserService {
         UUID uuid = UUID.fromString(userId);
         User user = userRepository.findById(uuid)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        if (user.getRole() != Role.ATTENDEE) {
+        if (user.getRole() != Role.USER) {
             throw new IllegalStateException("Only ATTENDEE can perform balance operations");
         }
         return user.getBalance();
