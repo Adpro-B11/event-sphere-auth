@@ -1,7 +1,5 @@
 package id.ac.ui.cs.advprog.eventsphereauth.controller;
 
-import id.ac.ui.cs.advprog.eventsphereauth.dto.UserResponse;
-import id.ac.ui.cs.advprog.eventsphereauth.model.Role;
 import id.ac.ui.cs.advprog.eventsphereauth.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +26,6 @@ class BalanceControllerTest {
     @InjectMocks
     private BalanceController balanceController;
 
-    private UserResponse userResponse1;
-    private UserResponse userResponse2;
     private UUID user1Id;
     private UUID user2Id;
 
@@ -37,31 +33,14 @@ class BalanceControllerTest {
     void setUp() {
         user1Id = UUID.randomUUID();
         user2Id = UUID.randomUUID();
-
-        userResponse1 = UserResponse.builder()
-                .id(user1Id)
-                .username("userone")
-                .email("userone@example.com")
-                .phoneNumber("111")
-                .role(Role.USER)
-                .balance(BigDecimal.ZERO)
-                .build();
-
-        userResponse2 = UserResponse.builder()
-                .id(user2Id)
-                .username("usertwo")
-                .email("usertwo@example.com")
-                .phoneNumber("222")
-                .role(Role.USER)
-                .balance(BigDecimal.ZERO)
-                .build();
     }
 
     @Test
     void addBalanceSuccess() {
-        BigDecimal amount = BigDecimal.valueOf(50);
         Map<String, Double> payload = new HashMap<>();
-        payload.put("amount", amount.doubleValue());
+        payload.put("amount", 50.0);
+
+        BigDecimal amount = BigDecimal.valueOf(payload.get("amount"));
 
         doNothing().when(userService).addBalance(user1Id.toString(), amount);
         when(userService.getBalance(user1Id.toString())).thenReturn(amount);
@@ -77,9 +56,10 @@ class BalanceControllerTest {
 
     @Test
     void addBalanceUserNotFoundReturns404() {
-        BigDecimal amount = BigDecimal.valueOf(50);
         Map<String, Double> payload = new HashMap<>();
-        payload.put("amount", amount.doubleValue());
+        payload.put("amount", 50.0);
+
+        BigDecimal amount = BigDecimal.valueOf(payload.get("amount"));
 
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND))
                 .when(userService).addBalance(user1Id.toString(), amount);
@@ -93,9 +73,10 @@ class BalanceControllerTest {
 
     @Test
     void deductBalanceSuccess() {
-        BigDecimal amount = BigDecimal.valueOf(30);
         Map<String, Double> payload = new HashMap<>();
-        payload.put("amount", amount.doubleValue());
+        payload.put("amount", 30.0);
+
+        BigDecimal amount = BigDecimal.valueOf(payload.get("amount"));
 
         doNothing().when(userService).deductBalance(user1Id.toString(), amount);
         when(userService.getBalance(user1Id.toString())).thenReturn(BigDecimal.ZERO);
@@ -111,9 +92,10 @@ class BalanceControllerTest {
 
     @Test
     void deductBalanceInsufficientFundsReturns400() {
-        BigDecimal amount = BigDecimal.valueOf(200);
         Map<String, Double> payload = new HashMap<>();
-        payload.put("amount", amount.doubleValue());
+        payload.put("amount", 200.0);
+
+        BigDecimal amount = BigDecimal.valueOf(payload.get("amount"));
 
         doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST))
                 .when(userService).deductBalance(user1Id.toString(), amount);
@@ -127,9 +109,10 @@ class BalanceControllerTest {
 
     @Test
     void deductBalanceSystemErrorReturns500() {
-        BigDecimal amount = BigDecimal.valueOf(50);
         Map<String, Double> payload = new HashMap<>();
-        payload.put("amount", amount.doubleValue());
+        payload.put("amount", 50.0);
+
+        BigDecimal amount = BigDecimal.valueOf(payload.get("amount"));
 
         doThrow(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR))
                 .when(userService).deductBalance(user1Id.toString(), amount);
